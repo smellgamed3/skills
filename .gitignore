@@ -1,0 +1,24 @@
+# Claude Code specific
+.claude/
+.omc/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Editor specific
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+TEMP.md
+
+# Test files
+TESTING.md
+test-*.md
+*-test.md
