@@ -1,21 +1,21 @@
 ---
 name: outline-cli
-description: Use when the user wants to interact with Outline (the wiki and knowledge base app) via API — including creating, reading, updating, deleting, searching, archiving, moving, or duplicating documents; managing collections, comments, users, groups, shares, stars, templates, revisions, attachments, file operations, events, or data attributes; or checking authentication. Supports API keys and OAuth. Works with both cloud (app.getoutline.com) and self-hosted instances.
+description: 当用户需要通过 API 与 Outline（wiki 知识库应用）交互时使用，包括：创建、读取、更新、删除、搜索、归档、移动或复制文档；管理知识库、评论、用户、用户组、分享链接、星标、模板、历史版本、附件、文件操作、事件或数据属性；以及检查认证信息。支持 API Key 和 OAuth，兼容云端（app.getoutline.com）和私有部署实例。
 ---
 
-# Outline API Skill
+# Outline API 技能文档
 
-## Overview
+## 概述
 
-Outline is a modern wiki and knowledge base with a comprehensive RPC-style API. Every endpoint is a `POST` request to `https://app.getoutline.com/api/:method` (or your self-hosted domain). All request bodies and response bodies are JSON.
+Outline 是一款现代 wiki 知识库应用，提供完善的 RPC 风格 API。每个接口都是向 `https://app.getoutline.com/api/:method`（或你的私有部署域名）发送 `POST` 请求，请求体和响应体均为 JSON 格式。
 
-**Environment variables (set before use):**
+**使用前设置环境变量：**
 ```bash
 export OUTLINE_API_KEY="ol_api_..."          # required
 export OUTLINE_API_BASE="https://app.getoutline.com"  # or your self-hosted URL
 ```
 
-**Reusable helper function (bash):**
+**可复用的辅助函数（bash）：**
 ```bash
 outline() {
   local method="$1" data="${2:-{}}"
@@ -30,64 +30,64 @@ outline() {
 
 ---
 
-## Decision Tree
+## 决策树
 
 ```
-What do you need to do?
+你需要做什么？
 │
-├─ Work with documents?              → documents.*
-├─ Manage collections?               → collections.*
-├─ Add/read comments?                → comments.*
-├─ Manage users?                     → users.*
-├─ Manage groups?                    → groups.*
-├─ Share documents publicly?         → shares.*
-├─ Star/favorite items?              → stars.*
-├─ View document revisions/history?  → revisions.*
-├─ Work with templates?              → templates.*
-├─ Upload/manage file attachments?   → attachments.*
-├─ Import/export bulk data?          → collections.export* / fileOperations.*
-├─ Audit trail / activity stream?    → events.list
-├─ Custom metadata fields?           → dataAttributes.* (Business/Enterprise)
-└─ Check API auth / workspace info?  → auth.*
+├─ 操作文档？                    → documents.*
+├─ 管理知识库？                   → collections.*
+├─ 添加/读取评论？                → comments.*
+├─ 管理用户？                     → users.*
+├─ 管理用户组？                   → groups.*
+├─ 公开分享文档？                 → shares.*
+├─ 收藏/星标内容？                → stars.*
+├─ 查看文档历史版本？              → revisions.*
+├─ 使用模板？                     → templates.*
+├─ 上传/管理文件附件？            → attachments.*
+├─ 批量导入/导出数据？            → collections.export* / fileOperations.*
+├─ 审计日志/操作流水？            → events.list
+├─ 自定义元数据字段？             → dataAttributes.*（商业版/企业版）
+└─ 检查 API 认证/工作区信息？     → auth.*
 ```
 
 ---
 
-## Authentication
+## 认证
 
-| Method | Description |
-|--------|-------------|
-| **API Key** | `Authorization: Bearer ol_api_<38 chars>`. Create under **Settings → API & Apps**. |
-| **OAuth 2.0** | Register app under **Settings → Applications**, then exchange credentials for an access token. |
+| 方式 | 说明 |
+|------|------|
+| **API Key** | `Authorization: Bearer ol_api_<38位字符>`，在 **设置 → API & 应用** 中创建。 |
+| **OAuth 2.0** | 在 **设置 → 应用** 中注册应用，然后用客户端凭据换取访问令牌。 |
 
-**Scopes** (restrict API key access):
+**权限范围**（限制 API Key 访问权限）：
 
-| Scope | Access granted |
-|-------|----------------|
-| `read` | All read actions |
-| `write` | All read + write actions |
-| `documents:read` | Document reads only |
-| `documents:write` | Document reads + writes |
-| `collections:read` | Collection reads only |
-| `collections:write` | Collection reads + writes |
-| `documents.*` | All document API methods |
-| `users.*` | All user API methods |
+| 范围 | 授权内容 |
+|------|----------|
+| `read` | 所有读取操作 |
+| `write` | 所有读取 + 写入操作 |
+| `documents:read` | 仅文档读取 |
+| `documents:write` | 文档读写 |
+| `collections:read` | 仅知识库读取 |
+| `collections:write` | 知识库读写 |
+| `documents.*` | 所有文档 API 方法 |
+| `users.*` | 所有用户 API 方法 |
 
 ---
 
-## Response Envelope
+## 响应格式
 
-**Success:**
+**成功：**
 ```json
 { "ok": true, "status": 200, "data": { ... } }
 ```
 
-**Error:**
+**错误：**
 ```json
 { "ok": false, "error": "Not Found" }
 ```
 
-**Paginated list:**
+**分页列表：**
 ```json
 {
   "ok": true, "data": [...],
@@ -95,37 +95,37 @@ What do you need to do?
 }
 ```
 
-Pagination parameters accepted by all list endpoints: `limit` (default 25), `offset`.  
-Sorting parameters: `sort` (field name), `direction` (`ASC` | `DESC`).
+所有列表接口均支持分页参数：`limit`（默认 25）、`offset`。  
+排序参数：`sort`（字段名）、`direction`（`ASC` | `DESC`）。
 
 ---
 
-## Auth
+## Auth（认证）
 
-### `auth.info` — Retrieve current auth details
+### `auth.info` — 获取当前认证信息
 ```bash
 outline auth.info
 ```
-Returns the current user and team associated with the API key.
+返回当前 API Key 关联的用户和团队信息。
 
-### `auth.config` — Retrieve authentication options (public, no auth required)
+### `auth.config` — 获取认证配置（公开接口，无需认证）
 ```bash
 outline auth.config
 ```
-Returns available authentication providers (SSO services) for a workspace.
+返回工作区可用的认证提供商（SSO 服务）列表。
 
 ---
 
-## Documents
+## 文档（Documents）
 
-### `documents.info` — Retrieve a document
+### `documents.info` — 获取文档详情
 ```bash
 outline documents.info '{"id": "DOC_ID_OR_URL_ID"}'
 # Or by share ID:
 outline documents.info '{"shareId": "SHARE_UUID"}'
 ```
 
-### `documents.list` — List all published documents
+### `documents.list` — 列出所有已发布文档
 ```bash
 outline documents.list '{
   "collectionId": "COLLECTION_UUID",   // optional: filter by collection
@@ -138,7 +138,7 @@ outline documents.list '{
 }'
 ```
 
-### `documents.drafts` — List current user's draft documents
+### `documents.drafts` — 列出当前用户的草稿文档
 ```bash
 outline documents.drafts '{
   "collectionId": "COLLECTION_UUID",   // optional
@@ -147,27 +147,27 @@ outline documents.drafts '{
 }'
 ```
 
-### `documents.archived` — List archived documents
+### `documents.archived` — 列出已归档文档
 ```bash
 outline documents.archived '{"collectionId": "COLLECTION_UUID", "limit": 25}'
 ```
 
-### `documents.deleted` — List deleted (trashed) documents
+### `documents.deleted` — 列出已删除（回收站）文档
 ```bash
 outline documents.deleted '{"limit": 25, "offset": 0}'
 ```
 
-### `documents.viewed` — List recently viewed documents
+### `documents.viewed` — 列出最近浏览的文档
 ```bash
 outline documents.viewed '{"limit": 25}'
 ```
 
-### `documents.documents` — Get a document's child structure (tree)
+### `documents.documents` — 获取文档的子文档结构（树形）
 ```bash
 outline documents.documents '{"id": "DOC_ID"}'
 ```
 
-### `documents.search` — Full-text search across documents
+### `documents.search` — 全文搜索文档
 ```bash
 outline documents.search '{
   "query": "onboarding process",
@@ -184,9 +184,9 @@ outline documents.search '{
   "limit": 25
 }'
 ```
-Returns array of `{ context, ranking, document }`.
+返回数组，每项包含 `{ context, ranking, document }`。
 
-### `documents.search_titles` — Search document titles only (faster)
+### `documents.search_titles` — 仅搜索文档标题（速度更快）
 ```bash
 outline documents.search_titles '{
   "query": "API guide",
@@ -196,7 +196,7 @@ outline documents.search_titles '{
 }'
 ```
 
-### `documents.answerQuestion` — AI-powered Q&A over documents *(Business/Enterprise/Cloud)*
+### `documents.answerQuestion` — 用自然语言提问文档内容 *(商业版/企业版/云端)*
 ```bash
 outline documents.answerQuestion '{
   "query": "What is our holiday policy?",
@@ -204,7 +204,7 @@ outline documents.answerQuestion '{
 }'
 ```
 
-### `documents.create` — Create a document
+### `documents.create` — 创建文档
 ```bash
 outline documents.create '{
   "title": "Document Title",
@@ -220,7 +220,7 @@ outline documents.create '{
 }'
 ```
 
-### `documents.update` — Update a document
+### `documents.update` — 更新文档
 ```bash
 outline documents.update '{
   "id": "DOC_ID",
@@ -236,7 +236,7 @@ outline documents.update '{
 }'
 ```
 
-### `documents.duplicate` — Duplicate a document
+### `documents.duplicate` — 复制文档
 ```bash
 outline documents.duplicate '{
   "id": "DOC_ID",
@@ -248,7 +248,7 @@ outline documents.duplicate '{
 }'
 ```
 
-### `documents.move` — Move a document
+### `documents.move` — 移动文档
 ```bash
 outline documents.move '{
   "id": "DOC_ID",
@@ -258,12 +258,12 @@ outline documents.move '{
 }'
 ```
 
-### `documents.archive` — Archive a document
+### `documents.archive` — 归档文档
 ```bash
 outline documents.archive '{"id": "DOC_ID"}'
 ```
 
-### `documents.restore` — Restore an archived or deleted document
+### `documents.restore` — 恢复已归档或已删除的文档
 ```bash
 outline documents.restore '{
   "id": "DOC_ID",
@@ -272,29 +272,29 @@ outline documents.restore '{
 }'
 ```
 
-### `documents.unpublish` — Move a published document back to draft
+### `documents.unpublish` — 将已发布文档退回草稿
 ```bash
 outline documents.unpublish '{"id": "DOC_ID", "detach": false}'
 ```
 
-### `documents.delete` — Delete a document (moves to trash)
+### `documents.delete` — 删除文档（移入回收站）
 ```bash
 outline documents.delete '{"id": "DOC_ID"}'
-# Permanently destroy (no recovery):
+# 永久销毁（不可恢复）：
 outline documents.delete '{"id": "DOC_ID", "permanent": true}'
 ```
 
-### `documents.export` — Export a document as Markdown/HTML/PDF
+### `documents.export` — 将文档导出为 Markdown/HTML/PDF
 ```bash
-# Markdown (default Accept header):
+# Markdown（默认 Accept 头）：
 outline documents.export '{"id": "DOC_ID"}'
-# Include child documents (returns zip):
+# 包含子文档（返回 zip）：
 outline documents.export '{"id": "DOC_ID", "includeChildDocuments": true}'
-# PDF with specific paper size:
+# 指定纸张大小导出 PDF：
 outline documents.export '{"id": "DOC_ID", "paperSize": "A4"}'
 ```
 
-### `documents.import` — Import a file as a document
+### `documents.import` — 从文件导入为文档
 ```bash
 curl -sf "${OUTLINE_API_BASE}/api/documents.import" \
   -X POST \
@@ -303,9 +303,9 @@ curl -sf "${OUTLINE_API_BASE}/api/documents.import" \
   -F "collectionId=COLLECTION_UUID" \
   -F "publish=true"
 ```
-Supported file types: plain text, Markdown, DOCX, CSV, TSV, HTML.
+支持的文件类型：纯文本、Markdown、DOCX、CSV、TSV、HTML。
 
-### `documents.templatize` — Create a template from a document
+### `documents.templatize` — 将文档转换为模板
 ```bash
 outline documents.templatize '{
   "id": "DOC_ID",
@@ -314,46 +314,46 @@ outline documents.templatize '{
 }'
 ```
 
-### `documents.users` — List all users with access to a document
+### `documents.users` — 列出所有有权访问该文档的用户
 ```bash
 outline documents.users '{"id": "DOC_ID", "query": "alice"}'
 ```
 
-### `documents.memberships` — List users with direct membership on a document
+### `documents.memberships` — 列出直接成员权限的用户
 ```bash
 outline documents.memberships '{"id": "DOC_ID", "permission": "read"}'
 ```
 
-### `documents.add_user` — Grant a user access to a document
+### `documents.add_user` — 授予用户对文档的访问权限
 ```bash
 outline documents.add_user '{"id": "DOC_ID", "userId": "USER_UUID", "permission": "read"}'
 ```
 
-### `documents.remove_user` — Revoke a user's access to a document
+### `documents.remove_user` — 撤销用户对文档的访问权限
 ```bash
 outline documents.remove_user '{"id": "DOC_ID", "userId": "USER_UUID"}'
 ```
 
-### `documents.add_group` — Grant a group access to a document
+### `documents.add_group` — 授予用户组对文档的访问权限
 ```bash
 outline documents.add_group '{"id": "DOC_ID", "groupId": "GROUP_UUID", "permission": "read"}'
 ```
 
-### `documents.remove_group` — Revoke a group's access to a document
+### `documents.remove_group` — 撤销用户组对文档的访问权限
 ```bash
 outline documents.remove_group '{"id": "DOC_ID", "groupId": "GROUP_UUID"}'
 ```
 
 ---
 
-## Collections
+## 知识库（Collections）
 
-### `collections.info` — Retrieve a collection
+### `collections.info` — 获取知识库详情
 ```bash
 outline collections.info '{"id": "COLLECTION_UUID"}'
 ```
 
-### `collections.list` — List all collections
+### `collections.list` — 列出所有知识库
 ```bash
 outline collections.list '{
   "query": "engineering",
@@ -362,13 +362,13 @@ outline collections.list '{
 }'
 ```
 
-### `collections.documents` — Get a collection's full document tree
+### `collections.documents` — 获取知识库的完整文档树
 ```bash
 outline collections.documents '{"id": "COLLECTION_UUID"}'
 ```
-Returns a nested tree of navigation nodes.
+返回导航节点的嵌套树结构。
 
-### `collections.create` — Create a collection
+### `collections.create` — 创建知识库
 ```bash
 outline collections.create '{
   "name": "Engineering",
@@ -380,7 +380,7 @@ outline collections.create '{
 }'
 ```
 
-### `collections.update` — Update a collection
+### `collections.update` — 更新知识库
 ```bash
 outline collections.update '{
   "id": "COLLECTION_UUID",
@@ -391,22 +391,22 @@ outline collections.update '{
 }'
 ```
 
-### `collections.delete` — Delete a collection and all its documents
+### `collections.delete` — 删除知识库及其所有文档
 ```bash
 outline collections.delete '{"id": "COLLECTION_UUID"}'
 ```
-⚠️ Irreversible — deletes all documents inside.
+⚠️ 不可逆操作——将删除知识库内所有文档。
 
-### `collections.export` — Export a collection as a zip
+### `collections.export` — 将知识库导出为 zip 包
 ```bash
 outline collections.export '{
   "id": "COLLECTION_UUID",
   "format": "outline-markdown"   // outline-markdown | json | html
 }'
 ```
-Returns a `FileOperation` — poll `fileOperations.info` for status and download URL.
+返回一个 `FileOperation`，通过 `fileOperations.info` 轮询状态和下载链接。
 
-### `collections.export_all` — Export all collections
+### `collections.export_all` — 导出所有知识库
 ```bash
 outline collections.export_all '{
   "format": "outline-markdown",
@@ -415,7 +415,7 @@ outline collections.export_all '{
 }'
 ```
 
-### `collections.memberships` — List individual user memberships
+### `collections.memberships` — 列出知识库的用户成员权限
 ```bash
 outline collections.memberships '{
   "id": "COLLECTION_UUID",
@@ -425,7 +425,7 @@ outline collections.memberships '{
 }'
 ```
 
-### `collections.add_user` — Add a user to a collection
+### `collections.add_user` — 将用户添加到知识库
 ```bash
 outline collections.add_user '{
   "id": "COLLECTION_UUID",
@@ -434,17 +434,17 @@ outline collections.add_user '{
 }'
 ```
 
-### `collections.remove_user` — Remove a user from a collection
+### `collections.remove_user` — 将用户从知识库移除
 ```bash
 outline collections.remove_user '{"id": "COLLECTION_UUID", "userId": "USER_UUID"}'
 ```
 
-### `collections.group_memberships` — List group memberships on a collection
+### `collections.group_memberships` — 列出知识库的用户组权限
 ```bash
 outline collections.group_memberships '{"id": "COLLECTION_UUID", "query": "devs"}'
 ```
 
-### `collections.add_group` — Grant a group access to a collection
+### `collections.add_group` — 授予用户组对知识库的访问权限
 ```bash
 outline collections.add_group '{
   "id": "COLLECTION_UUID",
@@ -453,16 +453,16 @@ outline collections.add_group '{
 }'
 ```
 
-### `collections.remove_group` — Revoke a group's access to a collection
+### `collections.remove_group` — 撤销用户组对知识库的访问权限
 ```bash
 outline collections.remove_group '{"id": "COLLECTION_UUID", "groupId": "GROUP_UUID"}'
 ```
 
 ---
 
-## Comments
+## 评论（Comments）
 
-### `comments.list` — List comments
+### `comments.list` — 列出评论
 ```bash
 outline comments.list '{
   "documentId": "DOC_UUID",         // optional: filter by document
@@ -472,12 +472,12 @@ outline comments.list '{
 }'
 ```
 
-### `comments.info` — Retrieve a single comment
+### `comments.info` — 获取单条评论详情
 ```bash
 outline comments.info '{"id": "COMMENT_UUID", "includeAnchorText": true}'
 ```
 
-### `comments.create` — Create a comment or reply
+### `comments.create` — 发表评论或回复
 ```bash
 outline comments.create '{
   "documentId": "DOC_UUID",
@@ -486,26 +486,26 @@ outline comments.create '{
 }'
 ```
 
-### `comments.update` — Update a comment
+### `comments.update` — 更新评论
 ```bash
 outline comments.update '{"id": "COMMENT_UUID", "data": {"text": "Updated text."}}'
 ```
 
-### `comments.delete` — Delete a comment (and its replies)
+### `comments.delete` — 删除评论（及其所有回复）
 ```bash
 outline comments.delete '{"id": "COMMENT_UUID"}'
 ```
 
 ---
 
-## Users
+## 用户（Users）
 
-### `users.info` — Retrieve a user
+### `users.info` — 获取用户信息
 ```bash
 outline users.info '{"id": "USER_UUID"}'
 ```
 
-### `users.list` — List all users in the workspace
+### `users.list` — 列出工作区中的所有用户
 ```bash
 outline users.list '{
   "query": "alice",
@@ -515,97 +515,97 @@ outline users.list '{
 }'
 ```
 
-### `users.update` — Update a user profile
+### `users.update` — 更新用户资料
 ```bash
 outline users.update '{"id": "USER_UUID", "name": "Alice Smith", "avatarUrl": "https://..."}'
 ```
 
-### `users.promote` — Promote a user to admin
+### `users.promote` — 将用户提升为管理员
 ```bash
 outline users.promote '{"id": "USER_UUID"}'
 ```
 
-### `users.demote` — Demote an admin to member/viewer
+### `users.demote` — 将管理员降级为成员/查看者
 ```bash
 outline users.demote '{"id": "USER_UUID", "to": "member"}'
 ```
 
-### `users.suspend` — Suspend a user (revoke access)
+### `users.suspend` — 停用用户（撤销访问权限）
 ```bash
 outline users.suspend '{"id": "USER_UUID"}'
 ```
 
-### `users.activate` — Reactivate a suspended user
+### `users.activate` — 重新激活已停用的用户
 ```bash
 outline users.activate '{"id": "USER_UUID"}'
 ```
 
-### `users.delete` — Delete a user from the workspace
+### `users.delete` — 从工作区删除用户
 ```bash
 outline users.delete '{"id": "USER_UUID"}'
 ```
 
 ---
 
-## Groups
+## 用户组（Groups）
 
-### `groups.info` — Retrieve a group
+### `groups.info` — 获取用户组详情
 ```bash
 outline groups.info '{"id": "GROUP_UUID"}'
 ```
 
-### `groups.list` — List all groups
+### `groups.list` — 列出所有用户组
 ```bash
 outline groups.list '{"query": "engineering", "limit": 25}'
 ```
 
-### `groups.create` — Create a group
+### `groups.create` — 创建用户组
 ```bash
 outline groups.create '{"name": "Backend Team"}'
 ```
 
-### `groups.update` — Update a group
+### `groups.update` — 更新用户组
 ```bash
 outline groups.update '{"id": "GROUP_UUID", "name": "Backend Engineers"}'
 ```
 
-### `groups.delete` — Delete a group
+### `groups.delete` — 删除用户组
 ```bash
 outline groups.delete '{"id": "GROUP_UUID"}'
 ```
 
-### `groups.memberships` — List users in a group
+### `groups.memberships` — 列出用户组中的成员
 ```bash
 outline groups.memberships '{"id": "GROUP_UUID", "query": "bob", "limit": 25}'
 ```
 
-### `groups.add_user` — Add a user to a group
+### `groups.add_user` — 将用户添加到用户组
 ```bash
 outline groups.add_user '{"id": "GROUP_UUID", "userId": "USER_UUID"}'
 ```
 
-### `groups.remove_user` — Remove a user from a group
+### `groups.remove_user` — 将用户从用户组移除
 ```bash
 outline groups.remove_user '{"id": "GROUP_UUID", "userId": "USER_UUID"}'
 ```
 
 ---
 
-## Shares
+## 分享（Shares）
 
-### `shares.info` — Retrieve a share
+### `shares.info` — 获取分享链接详情
 ```bash
 outline shares.info '{"id": "SHARE_UUID"}'
 # Or by document:
 outline shares.info '{"documentId": "DOC_UUID"}'
 ```
 
-### `shares.list` — List all shares
+### `shares.list` — 列出所有分享链接
 ```bash
 outline shares.list '{"limit": 25, "offset": 0}'
 ```
 
-### `shares.create` — Create a public share link
+### `shares.create` — 创建公开分享链接
 ```bash
 outline shares.create '{
   "documentId": "DOC_UUID",
@@ -615,7 +615,7 @@ outline shares.create '{
 }'
 ```
 
-### `shares.update` — Update share settings
+### `shares.update` — 更新分享设置
 ```bash
 outline shares.update '{
   "id": "SHARE_UUID",
@@ -624,55 +624,55 @@ outline shares.update '{
 }'
 ```
 
-### `shares.revoke` — Revoke a share link
+### `shares.revoke` — 撤销分享链接
 ```bash
 outline shares.revoke '{"id": "SHARE_UUID"}'
 ```
 
 ---
 
-## Stars (Favorites)
+## 星标（Stars / 收藏夹）
 
-### `stars.list` — List starred items
+### `stars.list` — 列出已收藏的内容
 ```bash
 outline stars.list '{"limit": 25}'
 ```
 
-### `stars.create` — Star a document or collection
+### `stars.create` — 收藏文档或知识库
 ```bash
 outline stars.create '{"documentId": "DOC_UUID"}'
 outline stars.create '{"collectionId": "COLLECTION_UUID"}'
 ```
 
-### `stars.delete` — Remove a star
+### `stars.delete` — 取消收藏
 ```bash
 outline stars.delete '{"id": "STAR_UUID"}'
 ```
 
 ---
 
-## Revisions
+## 历史版本（Revisions）
 
-### `revisions.info` — Retrieve a specific revision
+### `revisions.info` — 获取特定历史版本
 ```bash
 outline revisions.info '{"id": "REVISION_UUID"}'
 ```
 
-### `revisions.list` — List revisions for a document
+### `revisions.list` — 列出文档的所有历史版本
 ```bash
 outline revisions.list '{"documentId": "DOC_UUID", "limit": 25, "offset": 0}'
 ```
 
 ---
 
-## Templates
+## 模板（Templates）
 
-### `templates.info` — Retrieve a template
+### `templates.info` — 获取模板详情
 ```bash
 outline templates.info '{"id": "TEMPLATE_UUID"}'
 ```
 
-### `templates.list` — List templates
+### `templates.list` — 列出模板
 ```bash
 outline templates.list '{
   "collectionId": "COLLECTION_UUID",  // optional: collection-scoped templates
@@ -680,21 +680,21 @@ outline templates.list '{
 }'
 ```
 
-### `templates.update` — Update a template
+### `templates.update` — 更新模板
 ```bash
 outline templates.update '{"id": "TEMPLATE_UUID", "title": "New Title", "text": "# Updated"}'
 ```
 
-### `templates.delete` — Delete a template
+### `templates.delete` — 删除模板
 ```bash
 outline templates.delete '{"id": "TEMPLATE_UUID"}'
 ```
 
 ---
 
-## Attachments
+## 附件（Attachments）
 
-### `attachments.create` — Register an attachment and get upload URL
+### `attachments.create` — 注册附件并获取上传 URL
 ```bash
 outline attachments.create '{
   "name": "diagram.png",
@@ -703,52 +703,52 @@ outline attachments.create '{
   "documentId": "DOC_UUID"   // optional: associate with a document
 }'
 ```
-Returns `{ uploadUrl, form, attachment }`. Use the signed `uploadUrl` to PUT the file directly to cloud storage.
+返回 `{ uploadUrl, form, attachment }`，使用签名的 `uploadUrl` 将文件直接 PUT 到云存储。
 
-### `attachments.redirect` — Get a signed download URL for an attachment
+### `attachments.redirect` — 获取附件的签名下载 URL
 ```bash
 outline attachments.redirect '{"id": "ATTACHMENT_UUID"}'
 ```
-Returns a `302` redirect to the (possibly signed) file URL.
+返回 `302` 重定向到（可能带签名的）文件 URL。
 
-### `attachments.delete` — Delete an attachment
+### `attachments.delete` — 删除附件
 ```bash
 outline attachments.delete '{"id": "ATTACHMENT_UUID"}'
 ```
 
 ---
 
-## File Operations (Import / Export Jobs)
+## 文件操作（File Operations / 批量导入导出任务）
 
-File operations are background jobs for bulk imports/exports.
+文件操作是用于批量导入/导出的后台任务。
 
-### `fileOperations.info` — Poll a file operation for status
+### `fileOperations.info` — 轮询文件操作状态
 ```bash
 outline fileOperations.info '{"id": "FILE_OPERATION_UUID"}'
 ```
-Check `data.state`: `creating` → `uploading` → `complete` | `error`.
+检查 `data.state`：`creating` → `uploading` → `complete` | `error`。
 
-### `fileOperations.list` — List file operations
+### `fileOperations.list` — 列出文件操作记录
 ```bash
 outline fileOperations.list '{"type": "export", "limit": 25}'
 ```
 
-### `fileOperations.redirect` — Download the output file
+### `fileOperations.redirect` — 下载输出文件
 ```bash
 outline fileOperations.redirect '{"id": "FILE_OPERATION_UUID"}'
 ```
-Returns a `302` redirect to the download URL once state is `complete`.
+当状态为 `complete` 时，返回 `302` 重定向到下载 URL。
 
-### `fileOperations.delete` — Delete a file operation record
+### `fileOperations.delete` — 删除文件操作记录
 ```bash
 outline fileOperations.delete '{"id": "FILE_OPERATION_UUID"}'
 ```
 
 ---
 
-## Events (Audit Trail)
+## 事件（Events / 审计日志）
 
-### `events.list` — List activity events
+### `events.list` — 列出操作事件
 ```bash
 outline events.list '{
   "name": "documents.update",   // optional: filter by event name
@@ -760,25 +760,25 @@ outline events.list '{
   "limit": 25, "offset": 0
 }'
 ```
-Useful for audit trails, activity feeds, and monitoring changes.
+适用于审计追踪、操作流水和监控变更。
 
 ---
 
-## Data Attributes *(Business/Enterprise only)*
+## 数据属性（Data Attributes）*(仅商业版/企业版)*
 
-Custom metadata fields that can be attached to documents.
+可附加到文档的自定义元数据字段。
 
-### `dataAttributes.list` — List all data attributes
+### `dataAttributes.list` — 列出所有数据属性
 ```bash
 outline dataAttributes.list '{"limit": 25}'
 ```
 
-### `dataAttributes.info` — Retrieve a data attribute
+### `dataAttributes.info` — 获取数据属性详情
 ```bash
 outline dataAttributes.info '{"id": "DATA_ATTR_UUID"}'
 ```
 
-### `dataAttributes.create` — Create a data attribute
+### `dataAttributes.create` — 创建数据属性
 ```bash
 outline dataAttributes.create '{
   "name": "Status",
@@ -789,7 +789,7 @@ outline dataAttributes.create '{
 }'
 ```
 
-### `dataAttributes.update` — Update a data attribute
+### `dataAttributes.update` — 更新数据属性
 ```bash
 outline dataAttributes.update '{
   "id": "DATA_ATTR_UUID",
@@ -798,153 +798,153 @@ outline dataAttributes.update '{
   "pinned": false
 }'
 ```
-Note: `dataType` cannot be changed after creation.
+注意：`dataType` 创建后不可更改。
 
-### `dataAttributes.delete` — Delete a data attribute
+### `dataAttributes.delete` — 删除数据属性
 ```bash
 outline dataAttributes.delete '{"id": "DATA_ATTR_UUID"}'
 ```
 
 ---
 
-## Complete Endpoint Reference
+## 完整接口速查表
 
-| Resource | Endpoint | Key Parameters |
-|----------|----------|----------------|
+| 资源 | 接口 | 关键参数 |
+|------|------|----------|
 | **Auth** | `auth.info` | — |
-| | `auth.config` | — (no auth required) |
-| **Documents** | `documents.info` | `id` or `shareId` |
-| | `documents.list` | `collectionId`, `userId`, `statusFilter`, pagination |
-| | `documents.drafts` | `collectionId`, `dateFilter`, pagination |
-| | `documents.archived` | `collectionId`, pagination |
-| | `documents.deleted` | pagination |
-| | `documents.viewed` | pagination |
+| | `auth.config` | —（无需认证） |
+| **文档** | `documents.info` | `id` 或 `shareId` |
+| | `documents.list` | `collectionId`、`userId`、`statusFilter`、分页 |
+| | `documents.drafts` | `collectionId`、`dateFilter`、分页 |
+| | `documents.archived` | `collectionId`、分页 |
+| | `documents.deleted` | 分页 |
+| | `documents.viewed` | 分页 |
 | | `documents.documents` | `id` |
-| | `documents.search` | `query`, filters, pagination |
-| | `documents.search_titles` | `query`, filters, pagination |
-| | `documents.answerQuestion` ✨ | `query`, `collectionId` |
-| | `documents.create` | `title`, `text`, `collectionId`, `publish` |
-| | `documents.update` | `id`, `title`, `text`, `publish` |
-| | `documents.duplicate` | `id`, `recursive`, `collectionId` |
-| | `documents.move` | `id`, `collectionId`, `parentDocumentId` |
+| | `documents.search` | `query`、过滤条件、分页 |
+| | `documents.search_titles` | `query`、过滤条件、分页 |
+| | `documents.answerQuestion` ✨ | `query`、`collectionId` |
+| | `documents.create` | `title`、`text`、`collectionId`、`publish` |
+| | `documents.update` | `id`、`title`、`text`、`publish` |
+| | `documents.duplicate` | `id`、`recursive`、`collectionId` |
+| | `documents.move` | `id`、`collectionId`、`parentDocumentId` |
 | | `documents.archive` | `id` |
-| | `documents.restore` | `id`, `collectionId`, `revisionId` |
-| | `documents.unpublish` | `id`, `detach` |
-| | `documents.delete` | `id`, `permanent` |
-| | `documents.export` | `id`, `includeChildDocuments`, `paperSize` |
-| | `documents.import` | `file` (multipart), `collectionId`, `publish` |
-| | `documents.templatize` | `id`, `collectionId`, `publish` |
-| | `documents.users` | `id`, `query` |
-| | `documents.memberships` | `id`, `permission` |
-| | `documents.add_user` | `id`, `userId`, `permission` |
-| | `documents.remove_user` | `id`, `userId` |
-| | `documents.add_group` | `id`, `groupId`, `permission` |
-| | `documents.remove_group` | `id`, `groupId` |
-| **Collections** | `collections.info` | `id` |
-| | `collections.list` | `query`, `statusFilter`, pagination |
+| | `documents.restore` | `id`、`collectionId`、`revisionId` |
+| | `documents.unpublish` | `id`、`detach` |
+| | `documents.delete` | `id`、`permanent` |
+| | `documents.export` | `id`、`includeChildDocuments`、`paperSize` |
+| | `documents.import` | `file`（multipart）、`collectionId`、`publish` |
+| | `documents.templatize` | `id`、`collectionId`、`publish` |
+| | `documents.users` | `id`、`query` |
+| | `documents.memberships` | `id`、`permission` |
+| | `documents.add_user` | `id`、`userId`、`permission` |
+| | `documents.remove_user` | `id`、`userId` |
+| | `documents.add_group` | `id`、`groupId`、`permission` |
+| | `documents.remove_group` | `id`、`groupId` |
+| **知识库** | `collections.info` | `id` |
+| | `collections.list` | `query`、`statusFilter`、分页 |
 | | `collections.documents` | `id` |
-| | `collections.create` | `name`, `permission`, `icon`, `color` |
-| | `collections.update` | `id`, `name`, `permission`, `sharing` |
+| | `collections.create` | `name`、`permission`、`icon`、`color` |
+| | `collections.update` | `id`、`name`、`permission`、`sharing` |
 | | `collections.delete` | `id` |
-| | `collections.export` | `id`, `format` |
-| | `collections.export_all` | `format`, `includeAttachments` |
-| | `collections.memberships` | `id`, `query`, `permission`, pagination |
-| | `collections.add_user` | `id`, `userId`, `permission` |
-| | `collections.remove_user` | `id`, `userId` |
-| | `collections.group_memberships` | `id`, `query`, pagination |
-| | `collections.add_group` | `id`, `groupId`, `permission` |
-| | `collections.remove_group` | `id`, `groupId` |
-| **Comments** | `comments.list` | `documentId`, `collectionId`, pagination |
-| | `comments.info` | `id`, `includeAnchorText` |
-| | `comments.create` | `documentId`, `text`, `parentCommentId` |
-| | `comments.update` | `id`, `data` |
+| | `collections.export` | `id`、`format` |
+| | `collections.export_all` | `format`、`includeAttachments` |
+| | `collections.memberships` | `id`、`query`、`permission`、分页 |
+| | `collections.add_user` | `id`、`userId`、`permission` |
+| | `collections.remove_user` | `id`、`userId` |
+| | `collections.group_memberships` | `id`、`query`、分页 |
+| | `collections.add_group` | `id`、`groupId`、`permission` |
+| | `collections.remove_group` | `id`、`groupId` |
+| **评论** | `comments.list` | `documentId`、`collectionId`、分页 |
+| | `comments.info` | `id`、`includeAnchorText` |
+| | `comments.create` | `documentId`、`text`、`parentCommentId` |
+| | `comments.update` | `id`、`data` |
 | | `comments.delete` | `id` |
-| **Users** | `users.info` | `id` |
-| | `users.list` | `query`, `filter`, `role`, pagination |
-| | `users.update` | `id`, `name`, `avatarUrl` |
+| **用户** | `users.info` | `id` |
+| | `users.list` | `query`、`filter`、`role`、分页 |
+| | `users.update` | `id`、`name`、`avatarUrl` |
 | | `users.promote` | `id` |
-| | `users.demote` | `id`, `to` |
+| | `users.demote` | `id`、`to` |
 | | `users.suspend` | `id` |
 | | `users.activate` | `id` |
 | | `users.delete` | `id` |
-| **Groups** | `groups.info` | `id` |
-| | `groups.list` | `query`, pagination |
+| **用户组** | `groups.info` | `id` |
+| | `groups.list` | `query`、分页 |
 | | `groups.create` | `name` |
-| | `groups.update` | `id`, `name` |
+| | `groups.update` | `id`、`name` |
 | | `groups.delete` | `id` |
-| | `groups.memberships` | `id`, `query`, pagination |
-| | `groups.add_user` | `id`, `userId` |
-| | `groups.remove_user` | `id`, `userId` |
-| **Shares** | `shares.info` | `id` or `documentId` |
-| | `shares.list` | pagination |
-| | `shares.create` | `documentId`, `published`, `urlId` |
-| | `shares.update` | `id`, `published`, `includeChildDocuments` |
+| | `groups.memberships` | `id`、`query`、分页 |
+| | `groups.add_user` | `id`、`userId` |
+| | `groups.remove_user` | `id`、`userId` |
+| **分享** | `shares.info` | `id` 或 `documentId` |
+| | `shares.list` | 分页 |
+| | `shares.create` | `documentId`、`published`、`urlId` |
+| | `shares.update` | `id`、`published`、`includeChildDocuments` |
 | | `shares.revoke` | `id` |
-| **Stars** | `stars.list` | pagination |
-| | `stars.create` | `documentId` or `collectionId` |
+| **星标** | `stars.list` | 分页 |
+| | `stars.create` | `documentId` 或 `collectionId` |
 | | `stars.delete` | `id` |
-| **Revisions** | `revisions.info` | `id` |
-| | `revisions.list` | `documentId`, pagination |
-| **Templates** | `templates.info` | `id` |
-| | `templates.list` | `collectionId`, pagination |
-| | `templates.update` | `id`, `title`, `text` |
+| **历史版本** | `revisions.info` | `id` |
+| | `revisions.list` | `documentId`、分页 |
+| **模板** | `templates.info` | `id` |
+| | `templates.list` | `collectionId`、分页 |
+| | `templates.update` | `id`、`title`、`text` |
 | | `templates.delete` | `id` |
-| **Attachments** | `attachments.create` | `name`, `contentType`, `size`, `documentId` |
+| **附件** | `attachments.create` | `name`、`contentType`、`size`、`documentId` |
 | | `attachments.redirect` | `id` |
 | | `attachments.delete` | `id` |
-| **File Operations** | `fileOperations.info` | `id` |
-| | `fileOperations.list` | `type`, pagination |
+| **文件操作** | `fileOperations.info` | `id` |
+| | `fileOperations.list` | `type`、分页 |
 | | `fileOperations.redirect` | `id` |
 | | `fileOperations.delete` | `id` |
-| **Events** | `events.list` | `name`, `documentId`, `userId`, `auditLog`, pagination |
-| **DataAttributes** ✨ | `dataAttributes.info` | `id` |
-| | `dataAttributes.list` | pagination |
-| | `dataAttributes.create` | `name`, `dataType`, `options`, `pinned` |
-| | `dataAttributes.update` | `id`, `name`, `options` |
+| **事件** | `events.list` | `name`、`documentId`、`userId`、`auditLog`、分页 |
+| **数据属性** ✨ | `dataAttributes.info` | `id` |
+| | `dataAttributes.list` | 分页 |
+| | `dataAttributes.create` | `name`、`dataType`、`options`、`pinned` |
+| | `dataAttributes.update` | `id`、`name`、`options` |
 | | `dataAttributes.delete` | `id` |
 
-✨ = Business/Enterprise/Cloud tier required.
+✨ = 需要商业版/企业版/云端套餐。
 
 ---
 
-## Error Handling
+## 错误处理
 
-| Status | Meaning | Action |
-|--------|---------|--------|
-| `200` / `201` | Success | — |
-| `400` | Validation error | Check request body against required fields |
-| `401` | Unauthenticated | Check API key is valid and not revoked |
-| `403` | Unauthorized | Check the API key has required scope/permission |
-| `404` | Not Found | Verify the resource ID is correct |
-| `429` | Rate limited | Wait `Retry-After` seconds, then retry with exponential backoff |
-
----
-
-## Common Mistakes
-
-| Mistake | Fix |
-|---------|-----|
-| Using GET instead of POST | All Outline API endpoints are `POST` |
-| Missing `Content-Type: application/json` header | Always include it |
-| Hardcoding API keys | Use `OUTLINE_API_KEY` env var |
-| Ignoring pagination | Use `nextPath` or increment `offset` by `limit` |
-| Not polling `fileOperations.info` after export | Exports are async; poll until `state === "complete"` |
-| Forgetting `publish: true` on create | Without it, documents are saved as drafts |
-| Permanent delete without intent | Default delete is trash (recoverable); set `permanent: true` to destroy |
+| 状态码 | 含义 | 处理方式 |
+|--------|------|----------|
+| `200` / `201` | 成功 | — |
+| `400` | 参数校验失败 | 检查请求体必填字段 |
+| `401` | 未认证 | 检查 API Key 是否有效且未被撤销 |
+| `403` | 未授权 | 检查 API Key 是否具备所需权限范围 |
+| `404` | 资源不存在 | 确认资源 ID 是否正确 |
+| `429` | 请求频率超限 | 等待 `Retry-After` 秒后重试，采用指数退避策略 |
 
 ---
 
-## Self-hosted Instances
+## 常见错误
 
-Replace the base URL in all calls:
+| 错误 | 解决方法 |
+|------|----------|
+| 使用 GET 而非 POST | Outline API 所有接口均为 `POST` |
+| 缺少 `Content-Type: application/json` 请求头 | 必须始终包含此请求头 |
+| 在代码中硬编码 API Key | 使用 `OUTLINE_API_KEY` 环境变量 |
+| 忽略分页 | 使用 `nextPath` 或递增 `offset`（步长为 `limit`） |
+| 导出后未轮询 `fileOperations.info` | 导出是异步操作，需轮询直到 `state === "complete"` |
+| 创建时忘记设置 `publish: true` | 不设置则文档保存为草稿 |
+| 意外永久删除 | 默认删除进入回收站（可恢复），设置 `permanent: true` 才会彻底销毁 |
+
+---
+
+## 私有部署实例
+
+在所有调用中替换基础 URL：
 ```bash
 export OUTLINE_API_BASE="https://wiki.yourcompany.com"
-# Then use the same outline() helper — no other changes needed
+# 之后直接使用相同的 outline() 辅助函数，无需其他改动
 ```
 
-## Resources
+## 参考资源
 
-- **Official API docs:** https://www.getoutline.com/developers
-- **OpenAPI spec:** https://github.com/outline/openapi
-- **API key management:** Settings → API & Apps
-- **OAuth app registration:** Settings → Applications
+- **官方 API 文档：** https://www.getoutline.com/developers
+- **OpenAPI 规范：** https://github.com/outline/openapi
+- **API Key 管理：** 设置 → API & 应用
+- **OAuth 应用注册：** 设置 → 应用
