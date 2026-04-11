@@ -1,303 +1,106 @@
 ---
 name: outline-cli
-description: Use when interacting with Outline (wiki knowledge base) via its API, including reading, searching, and listing collections and documents. Works with both cloud (app.getoutline.com) and self-hosted instances.
+description: 当需要通过命令行与 Outline（wiki 知识库）交互时使用，包括读取、搜索、列出文档集合和文档。兼容云端（app.getoutline.com）和私有部署实例。
 ---
 
 # Outline CLI
 
-## Overview
+## 概述
 
-Outline is a modern wiki knowledge base with a complete RPC-style API. Every endpoint is a `POST` request to `https://<host>/api/<method>` with JSON body and response. This skill provides a lightweight Python CLI wrapper using `uv` to call the API directly from the terminal.
+Outline 是一款现代 wiki 知识库应用，提供完善的 RPC 风格 API。本技能提供一个轻量 Python CLI 工具，通过 `uv run` 零安装直接调用 API。
 
-**Core principle:** One script, zero installation overhead — `uv run` handles dependencies automatically on first use.
+**核心理念：** 一个脚本，零安装开销 —— `uv run` 在首次运行时自动处理依赖。
 
-## When to Use
+## 适用场景
 
 ```
-Need to interact with Outline knowledge base?
+需要与 Outline 知识库交互？
 │
-├─ Read or inspect content?
-│  ├─ Single document by ID/URL → documents.info
-│  └─ Browse collection structure → collections.documents
+├─ 读取或查看内容？
+│  ├─ 按 ID/URL 查单篇文档 → documents.info
+│  └─ 浏览集合文档树   → collections.documents
 │
-├─ Search for content?
-│  ├─ Full-text search → documents.search
-│  └─ Title-only search (faster) → documents.search_titles
+├─ 搜索内容？
+│  ├─ 全文搜索         → documents.search
+│  └─ 仅搜索标题（更快）→ documents.search_titles
 │
-├─ List resources?
-│  ├─ All collections → collections.list
-│  └─ Documents in a collection → documents.list
+├─ 列出资源？
+│  ├─ 所有集合         → collections.list
+│  └─ 集合内文档       → documents.list
 │
-└─ Get specific resource details?
-   ├─ Collection metadata → collections.info
-   └─ Document by shareId → documents.info (shareId)
+└─ 获取详细元数据？
+   ├─ 集合详情         → collections.info
+   └─ 按 shareId 查文档 → documents.info (shareId)
 ```
 
-**Use this skill when:**
-- Looking up documents or collections in an Outline wiki
-- Searching knowledge base content from the command line
-- Automating Outline API calls in scripts or workflows
-- Exploring the document tree of a collection
+**适合以下情况：**
+- 从命令行查找 Outline 知识库中的文档或集合
+- 在脚本或工作流中自动化调用 Outline API
+- 探索集合的文档树结构
 
-**When NOT to use:**
-- For creating or modifying documents (use the Outline web app or write-capable API tokens)
-- When no API key is available
+**不适合以下情况：**
+- 创建或修改文档（请使用 Outline 网页端或具有写权限的 API Token）
+- 尚未配置 API Key 时
 
-## Setup
+## 快速开始
 
-### Configuration File
+### 第一步：创建配置文件
 
-Create `~/.config/outline.json`:
-```json
-{
-  "base_url": "https://app.getoutline.com",
-  "api_key": "ol_api_..."
-}
-```
-
-For self-hosted instances, replace `base_url` with your instance URL (e.g., `https://wiki.example.com`).
-
-### CLI Script
-
-Save the following as `outline.py` (first run installs dependencies automatically via `uv`):
-
-```python
-# /// script
-# dependencies = ["requests"]
-# ///
-import json, sys, pathlib, requests
-
-config = json.loads(pathlib.Path("~/.config/outline.json").expanduser().read_text())
-base = config["base_url"].rstrip("/")
-key  = config["api_key"]
-
-method = sys.argv[1]
-data   = json.loads(sys.argv[2]) if len(sys.argv) > 2 else {}
-
-resp = requests.post(
-    f"{base}/api/{method}",
-    json=data,
-    headers={
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    },
-)
-print(json.dumps(resp.json(), ensure_ascii=False, indent=2))
-```
-
-**Usage:**
-```bash
-uv run outline.py <method> '<json_payload>'
-```
-
-## Quick Reference
-
-### API Methods
-
-| Resource | Method | Key Parameters |
-|----------|--------|----------------|
-| **Collections** | `collections.info` | `id` |
-| | `collections.list` | `query`, `statusFilter`, pagination |
-| | `collections.documents` | `id` |
-| **Documents** | `documents.info` | `id` or `shareId` |
-| | `documents.list` | `collectionId`, `userId`, `statusFilter`, pagination |
-| | `documents.search` | `query`, filters, pagination |
-| | `documents.search_titles` | `query`, filters, pagination |
-
-### Pagination Parameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `limit` | 25 | Results per page |
-| `offset` | 0 | Starting position |
-| `sort` | varies | Field to sort by |
-| `direction` | `DESC` | `ASC` or `DESC` |
-
-## Response Format
-
-**Success:**
-```json
-{ "ok": true, "status": 200, "data": { ... } }
-```
-
-**Error:**
-```json
-{ "ok": false, "error": "Not Found" }
-```
-
-**Paginated list:**
-```json
-{
-  "ok": true,
-  "data": [...],
-  "pagination": { "limit": 25, "offset": 0, "nextPath": "/api/documents.list?limit=25&offset=25" }
-}
-```
-
-## Collections
-
-### `collections.info` — Get collection details
-```bash
-uv run outline.py collections.info '{"id": "COLLECTION_UUID"}'
-```
-
-### `collections.list` — List all collections
-```bash
-uv run outline.py collections.list '{
-  "query": "engineering",
-  "statusFilter": ["active"],
-  "limit": 25,
-  "offset": 0
-}'
-```
-
-### `collections.documents` — Get full document tree
-```bash
-uv run outline.py collections.documents '{"id": "COLLECTION_UUID"}'
-```
-Returns a nested tree of navigation nodes for the entire collection.
-
-## Documents
-
-### `documents.info` — Get document details
-```bash
-# By document ID
-uv run outline.py documents.info '{"id": "DOC_ID_OR_URL_ID"}'
-
-# By share ID
-uv run outline.py documents.info '{"shareId": "SHARE_UUID"}'
-```
-
-### `documents.list` — List published documents
-```bash
-uv run outline.py documents.list '{
-  "collectionId": "COLLECTION_UUID",
-  "userId": "USER_UUID",
-  "parentDocumentId": "DOC_UUID",
-  "statusFilter": ["published", "draft", "archived"],
-  "limit": 25,
-  "offset": 0,
-  "sort": "updatedAt",
-  "direction": "DESC"
-}'
-```
-
-### `documents.search` — Full-text search
-```bash
-uv run outline.py documents.search '{
-  "query": "onboarding process",
-  "collectionId": "COLLECTION_UUID",
-  "statusFilter": ["published"],
-  "dateFilter": "month",
-  "snippetMinWords": 20,
-  "snippetMaxWords": 30,
-  "sort": "relevance",
-  "direction": "DESC",
-  "limit": 25
-}'
-```
-Returns an array where each item contains `{ context, ranking, document }`.
-
-### `documents.search_titles` — Search document titles only (faster)
-```bash
-uv run outline.py documents.search_titles '{
-  "query": "API guide",
-  "collectionId": "COLLECTION_UUID",
-  "statusFilter": ["published"],
-  "limit": 25
-}'
-```
-
-## Best Practices
-
-### Narrow searches with collectionId
-
-Always pass `collectionId` when you know the target collection — it dramatically reduces result noise and latency:
-```bash
-uv run outline.py documents.search '{"query": "deploy", "collectionId": "COLL_UUID"}'
-```
-
-### Use search_titles for discovery, search for content
-
-- `documents.search_titles` is faster and ideal when you know the document name
-- `documents.search` is better when you need to find content within documents
-
-### Handle pagination for large workspaces
-
-Check `pagination.nextPath` in the response and increment `offset` to fetch additional pages:
-```bash
-# Page 1
-uv run outline.py documents.list '{"collectionId": "COLL_UUID", "limit": 25, "offset": 0}'
-
-# Page 2
-uv run outline.py documents.list '{"collectionId": "COLL_UUID", "limit": 25, "offset": 25}'
-```
-
-### Pretty-print and filter with jq
-
-Pipe output through `jq` to extract specific fields:
-```bash
-# Get document titles from search results
-uv run outline.py documents.search '{"query": "onboarding"}' | jq '[.data[].document | {id, title}]'
-
-# List collection names
-uv run outline.py collections.list '{}' | jq '[.data[] | {id, name}]'
-```
-
-## Common Mistakes
-
-| Mistake | Fix |
-|---------|-----|
-| Using GET instead of POST | All Outline API calls use POST — the CLI handles this automatically |
-| Missing `Content-Type` header | The CLI sets all required headers automatically |
-| Passing string instead of JSON object | Always wrap payload in single quotes: `'{"key": "val"}'` |
-| Not paginating large results | Check `pagination.nextPath` and use `offset` to fetch all pages |
-| Using wrong `statusFilter` values | Valid values: `"published"`, `"draft"`, `"archived"` |
-| Searching without `collectionId` | Scope searches to a collection to reduce noise and improve speed |
-
-## Troubleshooting
-
-### `401 Unauthorized`
-```bash
-# Verify your API key is valid
-uv run outline.py auth.info '{}'
-```
-Re-generate the API key in Outline → Settings → API Tokens.
-
-### `404 Not Found`
-- Confirm the UUID is correct (copy directly from the document URL)
-- Ensure the document/collection hasn't been archived or deleted
-
-### Empty `data` array
-- The query matched nothing — try broader search terms
-- Remove `statusFilter` to include drafts and archived documents
-- Confirm the `collectionId` is correct
-
-### `uv` not found
-Install `uv` — download and review the install script before running:
-```bash
-# Download first, inspect, then execute
-curl -LsSf https://astral.sh/uv/install.sh -o uv-install.sh
-# Review uv-install.sh before proceeding
-sh uv-install.sh
-```
-
-### Config file not found
 ```bash
 mkdir -p ~/.config
 cat > ~/.config/outline.json << 'EOF'
 {
   "base_url": "https://app.getoutline.com",
-  "api_key": "ol_api_YOUR_KEY_HERE"
+  "api_key": "ol_api_..."
 }
 EOF
 ```
 
-## Resources
+私有部署实例将 `base_url` 改为自己的地址，例如 `https://wiki.example.com`。
 
-- **Outline API Reference**: https://www.getoutline.com/developers (or `https://docs.getoutline.com/s/api/` for self-hosted instances)
-- **uv Documentation**: https://docs.astral.sh/uv/
-- **jq Manual**: https://jqlang.github.io/jq/manual/
+### 第二步：获取脚本
 
-**Remember:** The Outline API is read/write — this skill focuses on read operations. Always scope searches with a `collectionId` when possible for better performance.
+将 [`scripts/outline.py`](scripts/outline.py) 保存到本地（`uv` 首次运行时自动安装依赖）：
+
+```bash
+# 直接运行（推荐）
+uv run scripts/outline.py <接口名> '<JSON 参数>'
+```
+
+### 安装 uv（如未安装）
+
+```bash
+# 先下载，检查后再执行
+curl -LsSf https://astral.sh/uv/install.sh -o uv-install.sh
+# 检查 uv-install.sh 内容后执行
+sh uv-install.sh
+```
+
+## 接口速查表
+
+| 资源 | 接口 | 关键参数 |
+|------|------|----------|
+| **集合** | `collections.info` | `id` |
+| | `collections.list` | `query`、`statusFilter`、分页参数 |
+| | `collections.documents` | `id` |
+| **文档** | `documents.info` | `id` 或 `shareId` |
+| | `documents.list` | `collectionId`、`userId`、`statusFilter`、分页参数 |
+| | `documents.search` | `query`、过滤条件、分页参数 |
+| | `documents.search_titles` | `query`、过滤条件、分页参数 |
+
+### 通用分页参数
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `limit` | 25 | 每页返回条数 |
+| `offset` | 0 | 起始偏移量 |
+| `sort` | 各接口不同 | 排序字段 |
+| `direction` | `DESC` | `ASC` 或 `DESC` |
+
+## 文档导航
+
+| 文件 | 说明 |
+|------|------|
+| [`reference.md`](reference.md) | 完整 API 接口文档（参数、响应格式、错误处理） |
+| [`examples.md`](examples.md) | 实用示例（搜索、分页、jq 过滤、批量操作） |
+| [`scripts/outline.py`](scripts/outline.py) | Python CLI 脚本（可直接执行） |
