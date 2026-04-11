@@ -275,9 +275,12 @@ Re-generate the API key in Outline → Settings → API Tokens.
 - Confirm the `collectionId` is correct
 
 ### `uv` not found
-Install `uv` with:
+Install `uv` — download and review the install script before running:
 ```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
+# Download first, inspect, then execute
+curl -LsSf https://astral.sh/uv/install.sh -o uv-install.sh
+# Review uv-install.sh before proceeding
+sh uv-install.sh
 ```
 
 ### Config file not found
@@ -293,7 +296,7 @@ EOF
 
 ## Resources
 
-- **Outline API Reference**: https://www.getoutline.com/developers
+- **Outline API Reference**: https://www.getoutline.com/developers (or `https://docs.getoutline.com/s/api/` for self-hosted instances)
 - **uv Documentation**: https://docs.astral.sh/uv/
 - **jq Manual**: https://jqlang.github.io/jq/manual/
 
