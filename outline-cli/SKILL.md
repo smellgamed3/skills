@@ -1,164 +1,106 @@
 ---
 name: outline-cli
-description: 当用户需要通过 API 与 Outline（wiki 知识库应用）交互时使用，包括：读取、搜索、列出文档集合和文档。兼容云端（app.getoutline.com）和私有部署实例。
+description: 当需要通过命令行与 Outline（wiki 知识库）交互时使用，包括读取、搜索、列出文档集合和文档。兼容云端（app.getoutline.com）和私有部署实例。
 ---
 
-# Outline API 技能文档
+# Outline CLI
 
 ## 概述
 
-Outline 是一款现代 wiki 知识库应用，提供完善的 RPC 风格 API。每个接口都是向 `https://<your-host>/api/:method` 发送 `POST` 请求，请求体和响应体均为 JSON 格式。
+Outline 是一款现代 wiki 知识库应用，提供完善的 RPC 风格 API。本技能提供一个轻量 Python CLI 工具，通过 `uv run` 零安装直接调用 API。
 
-**配置文件：** `~/.config/outline.json`
-```json
+**核心理念：** 一个脚本，零安装开销 —— `uv run` 在首次运行时自动处理依赖。
+
+## 适用场景
+
+```
+需要与 Outline 知识库交互？
+│
+├─ 读取或查看内容？
+│  ├─ 按 ID/URL 查单篇文档 → documents.info
+│  └─ 浏览集合文档树   → collections.documents
+│
+├─ 搜索内容？
+│  ├─ 全文搜索         → documents.search
+│  └─ 仅搜索标题（更快）→ documents.search_titles
+│
+├─ 列出资源？
+│  ├─ 所有集合         → collections.list
+│  └─ 集合内文档       → documents.list
+│
+└─ 获取详细元数据？
+   ├─ 集合详情         → collections.info
+   └─ 按 shareId 查文档 → documents.info (shareId)
+```
+
+**适合以下情况：**
+- 从命令行查找 Outline 知识库中的文档或集合
+- 在脚本或工作流中自动化调用 Outline API
+- 探索集合的文档树结构
+
+**不适合以下情况：**
+- 创建或修改文档（请使用 Outline 网页端或具有写权限的 API Token）
+- 尚未配置 API Key 时
+
+## 快速开始
+
+### 第一步：创建配置文件
+
+```bash
+mkdir -p ~/.config
+cat > ~/.config/outline.json << 'EOF'
 {
   "base_url": "https://app.getoutline.com",
   "api_key": "ol_api_..."
 }
+EOF
 ```
 
-**运行方式（uv run）：**
+私有部署实例将 `base_url` 改为自己的地址，例如 `https://wiki.example.com`。
 
-将以下内容保存为 `outline.py`（首次运行时 uv 会自动安装依赖）：
+### 第二步：获取脚本
 
-```python
-# /// script
-# dependencies = ["requests"]
-# ///
-import json, sys, pathlib, requests
+将 [`scripts/outline.py`](scripts/outline.py) 保存到本地（`uv` 首次运行时自动安装依赖）：
 
-config = json.loads(pathlib.Path("~/.config/outline.json").expanduser().read_text())
-base = config["base_url"].rstrip("/")
-key  = config["api_key"]
-
-method = sys.argv[1]
-data   = json.loads(sys.argv[2]) if len(sys.argv) > 2 else {}
-
-resp = requests.post(
-    f"{base}/api/{method}",
-    json=data,
-    headers={
-        "Authorization": f"Bearer {key}",
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-    },
-)
-print(json.dumps(resp.json(), ensure_ascii=False, indent=2))
-```
-
-调用方式：
 ```bash
-uv run outline.py <method> '<json>'
+# 直接运行（推荐）
+uv run scripts/outline.py <接口名> '<JSON 参数>'
 ```
 
----
+### 安装 uv（如未安装）
 
-## 响应格式
-
-**成功：**
-```json
-{ "ok": true, "status": 200, "data": { ... } }
-```
-
-**错误：**
-```json
-{ "ok": false, "error": "Not Found" }
-```
-
-**分页列表：**
-```json
-{
-  "ok": true, "data": [...],
-  "pagination": { "limit": 25, "offset": 0, "nextPath": "/api/documents.list?limit=25&offset=25" }
-}
-```
-
-所有列表接口均支持分页参数：`limit`（默认 25）、`offset`。  
-排序参数：`sort`（字段名）、`direction`（`ASC` | `DESC`）。
-
----
-
-## 文档集合（Collections）
-
-### `collections.info` — 获取知识库详情
 ```bash
-uv run outline.py collections.info '{"id": "COLLECTION_UUID"}'
+# 先下载，检查后再执行
+curl -LsSf https://astral.sh/uv/install.sh -o uv-install.sh
+# 检查 uv-install.sh 内容后执行
+sh uv-install.sh
 ```
-
-### `collections.list` — 列出所有知识库
-```bash
-uv run outline.py collections.list '{
-  "query": "engineering",
-  "statusFilter": ["active"],
-  "limit": 25, "offset": 0
-}'
-```
-
-### `collections.documents` — 获取知识库的完整文档树
-```bash
-uv run outline.py collections.documents '{"id": "COLLECTION_UUID"}'
-```
-返回导航节点的嵌套树结构。
-
----
-
-## 文档（Documents）
-
-### `documents.info` — 获取文档详情
-```bash
-uv run outline.py documents.info '{"id": "DOC_ID_OR_URL_ID"}'
-# 通过 shareId 查询：
-uv run outline.py documents.info '{"shareId": "SHARE_UUID"}'
-```
-
-### `documents.list` — 列出已发布文档
-```bash
-uv run outline.py documents.list '{
-  "collectionId": "COLLECTION_UUID",
-  "userId":       "USER_UUID",
-  "parentDocumentId": "DOC_UUID",
-  "statusFilter": ["published", "draft", "archived"],
-  "limit": 25, "offset": 0,
-  "sort": "updatedAt", "direction": "DESC"
-}'
-```
-
-### `documents.search` — 全文搜索文档
-```bash
-uv run outline.py documents.search '{
-  "query": "onboarding process",
-  "collectionId": "COLLECTION_UUID",
-  "statusFilter": ["published"],
-  "dateFilter": "month",
-  "snippetMinWords": 20,
-  "snippetMaxWords": 30,
-  "sort": "relevance",
-  "direction": "DESC",
-  "limit": 25
-}'
-```
-返回数组，每项包含 `{ context, ranking, document }`。
-
-### `documents.search_titles` — 仅搜索文档标题（速度更快）
-```bash
-uv run outline.py documents.search_titles '{
-  "query": "API guide",
-  "collectionId": "COLLECTION_UUID",
-  "statusFilter": ["published"],
-  "limit": 25
-}'
-```
-
----
 
 ## 接口速查表
 
 | 资源 | 接口 | 关键参数 |
 |------|------|----------|
-| **文档集合** | `collections.info` | `id` |
-| | `collections.list` | `query`、`statusFilter`、分页 |
+| **集合** | `collections.info` | `id` |
+| | `collections.list` | `query`、`statusFilter`、分页参数 |
 | | `collections.documents` | `id` |
 | **文档** | `documents.info` | `id` 或 `shareId` |
-| | `documents.list` | `collectionId`、`userId`、`statusFilter`、分页 |
-| | `documents.search` | `query`、过滤条件、分页 |
-| | `documents.search_titles` | `query`、过滤条件、分页 |
+| | `documents.list` | `collectionId`、`userId`、`statusFilter`、分页参数 |
+| | `documents.search` | `query`、过滤条件、分页参数 |
+| | `documents.search_titles` | `query`、过滤条件、分页参数 |
+
+### 通用分页参数
+
+| 参数 | 默认值 | 说明 |
+|------|--------|------|
+| `limit` | 25 | 每页返回条数 |
+| `offset` | 0 | 起始偏移量 |
+| `sort` | 各接口不同 | 排序字段 |
+| `direction` | `DESC` | `ASC` 或 `DESC` |
+
+## 文档导航
+
+| 文件 | 说明 |
+|------|------|
+| [`reference.md`](reference.md) | 完整 API 接口文档（参数、响应格式、错误处理） |
+| [`examples.md`](examples.md) | 实用示例（搜索、分页、jq 过滤、批量操作） |
+| [`scripts/outline.py`](scripts/outline.py) | Python CLI 脚本（可直接执行） |
